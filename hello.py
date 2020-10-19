@@ -1,7 +1,14 @@
 from collections import defaultdict
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 
 import graphviz
+
+
+class EntityFields:
+    def __init__(self, fields: List[str]):
+        self._fields = set(fields)
+
+    def _foreign_to()
 
 
 class Entity:
@@ -26,15 +33,16 @@ class Entity:
             ['id', 'name', 'age', ...]
             ```
         """
-        self.tablename = tablename
-        self.fields = [f.lower() for f in fields] if fields else []
+        self._tablename = tablename
+        self._fields = [f.lower() for f in fields] if fields else []
         if 'id' not in self.fields:
             self.fields.insert(0, 'id')
 
-        self._node = None
+        self._html = None
         self._edges = []
 
-    def get_header(self) -> str:
+    def _get_header(self) -> str:
+        """Get table header according to table name"""
         attrs = ''
         attr_map = {
             'bgcolor': self.HEADER_BGCOLOR,
@@ -45,7 +53,7 @@ class Entity:
             attrs += f'{k}="{v}" '
         return self.HEADER_TPLT.format(attrs=attrs, field_name=self.tablename.capitalize())
 
-    def get_row(self, field: str) -> str:
+    def _get_row(self, field: str) -> str:
         attrs = ''
         attr_map = {
             'align': self.FIELD_ALIGN,
@@ -54,19 +62,27 @@ class Entity:
             attrs += f'{k}="{v}" '
         return self.ROW_TPLT.format(attrs=attrs, field_name=field)
 
-    def get_table(self, hdr: str, rows: str) -> str:
+    def _get_table(self, hdr: str, rows: str) -> str:
         rows = '\n'.join(['', hdr, *rows, ''])
         return self.TABLE_TPLT.format(rows=rows)
+
+    def _update_html(self) -> str:
+        assert self.fields is not None
+        hdr = self._get_header()
+        rows = [self._get_row(field) for field in self.fields]
+        self._html = self._get_table(hdr, rows)
+        return self._html
 
     def edge_to(self, ent, self_port=None):
         self._edges.append((self, ent, self_port))
 
-    def update_node(self) -> str:
-        assert self.fields is not None
-        hdr = self.get_header()
-        rows = [self.get_row(field) for field in self.fields]
-        self._node = self.get_table(hdr, rows)
-        return self._node
+    @property
+    def tablename(self):
+        return self._tablename
+
+    @property
+    def fields(self):
+        return self._fields[:]
 
     @property
     def node_name(self) -> str:
@@ -74,7 +90,7 @@ class Entity:
 
     @property
     def label(self) -> str:
-        return '<' + (self._node or self.update_node()) + '>'
+        return '<' + (self._html or self._update_html()) + '>'
 
     @property
     def edges(self) -> List[Tuple['Entity', 'Entity', str]]:
@@ -95,7 +111,7 @@ class ERGraph(graphviz.Digraph):
         >>> student = Entity('student', ['id', 'school', 'class', 'score', 'person_id'])
         >>> er.node(student)
         >>> er.edge(student.port_person_id, person)
-        >>> er.render(view=True)
+        >>> er
     """
     def __init__(self, *args, nodes, **kwargs):
         super().__init__(*args, **kwargs)
